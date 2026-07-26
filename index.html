@@ -164,6 +164,8 @@
     </div>
     <p class="sub" style="margin-top:0;">체크된 할일이 오늘 날짜 캘린더 일정으로 만들어져요.</p>
     <button class="btn btn-accent" id="exportBtn">📅 오늘 캘린더 알림에 추가</button>
+    <button class="btn btn-outline" id="reminderBtn" style="width:100%; margin-top:10px;">🔔 미리알림 앱에 추가 (아이폰)</button>
+    <p class="sub" style="margin-top:8px; font-size:12.5px;">※ 미리알림 버튼은 아이폰 "단축어" 앱에 <b>종이할일추가</b>라는 이름의 단축어를 먼저 만들어두셔야 작동해요.</p>
     <div class="status" id="exportStatus"></div>
   </div>
 </main>
@@ -249,6 +251,7 @@ const listCard = document.getElementById('listCard');
 const todoListEl = document.getElementById('todoList');
 const exportCard = document.getElementById('exportCard');
 const exportBtn = document.getElementById('exportBtn');
+const reminderBtn = document.getElementById('reminderBtn');
 const exportStatus = document.getElementById('exportStatus');
 const addItemBtn = document.getElementById('addItemBtn');
 
@@ -372,6 +375,20 @@ function buildICS(items){
 function isIOS(){
   return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 }
+
+reminderBtn.addEventListener('click', () => {
+  const checked = todos.filter(t => t.checked && t.text.trim().length > 0);
+  if(checked.length === 0){
+    exportStatus.textContent = '체크된 할일이 없어요. 목록을 확인해주세요.';
+    exportStatus.classList.add('error');
+    return;
+  }
+  const lines = checked.map(t => t.time ? (t.time + ' ' + t.text) : t.text).join('\n');
+  const url = 'shortcuts://x-callback-url/run-shortcut?name=' + encodeURIComponent('종이할일추가') + '&input=text&text=' + encodeURIComponent(lines);
+  window.location.href = url;
+  exportStatus.classList.remove('error');
+  exportStatus.textContent = '단축어 앱으로 이동해요. "종이할일추가" 단축어를 미리 만들어두셨어야 해요.';
+});
 
 exportBtn.addEventListener('click', () => {
   const checked = todos.filter(t => t.checked && t.text.trim().length > 0);
