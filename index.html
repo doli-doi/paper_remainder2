@@ -383,7 +383,10 @@ reminderBtn.addEventListener('click', () => {
     exportStatus.classList.add('error');
     return;
   }
-  const lines = checked.map(t => t.time ? (t.time + ' ' + t.text) : t.text).join('\n');
+  const lines = checked.map(t => {
+    const time = (t.time && /^\d{1,2}:\d{2}$/.test(t.time)) ? t.time : '09:00';
+    return time + '@@' + t.text;
+  }).join('\n');
   const url = 'shortcuts://x-callback-url/run-shortcut?name=' + encodeURIComponent('종이할일추가') + '&input=text&text=' + encodeURIComponent(lines);
   window.location.href = url;
   exportStatus.classList.remove('error');
