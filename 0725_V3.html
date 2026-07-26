@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>오늘의 할일 – 종이에서 알림으로</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Serif+KR:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper: #FAF6EC;
+    --paper-line: #C9D6E3;
+    --margin-red: #C1443A;
+    --ink: #24304A;
+    --ink-soft: #55617A;
+    --accent: #E7B23B;
+    --accent-soft: #F6E3B8;
+    --danger: #C1443A;
+    --good: #3E7C5B;
+    --shadow: rgba(36,48,74,0.14);
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0;
+    background: var(--paper);
+    background-image: linear-gradient(var(--paper-line) 1px, transparent 1px);
+    background-size: 100% 34px;
+    background-position: 0 120px;
+    font-family: 'Noto Serif KR', serif;
+    color: var(--ink);
+    min-height: 100vh;
+    padding-bottom: 60px;
+  }
+  .margin-line{ position:fixed; top:0; bottom:0; left:38px; width:2px; background: var(--margin-red); opacity:0.35; z-index:0; }
+  header{ padding: 36px 24px 18px 56px; position:relative; z-index:1; }
+  .eyebrow{ font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:0.12em; color: var(--ink-soft); text-transform:uppercase; display:flex; justify-content:space-between; align-items:center; }
+  .gear-btn{ background:none; border:1px solid var(--paper-line); border-radius:8px; padding:4px 9px; cursor:pointer; font-size:14px; color: var(--ink-soft); }
+  h1{ font-family:'Kalam', cursive; font-size: 34px; margin: 4px 0 6px; color: var(--ink); }
+  .sub{ color: var(--ink-soft); font-size:14px; line-height:1.5; max-width: 520px;}
+  main{ max-width: 560px; margin: 0 auto; padding: 0 24px 24px 56px; position:relative; z-index:1;}
+  .card{ background: #FFFDF8; border: 1px solid rgba(36,48,74,0.08); border-radius: 14px; box-shadow: 0 6px 18px var(--shadow); padding: 20px; margin-bottom: 20px; }
+  .step{ display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+  .step-num{ font-family:'Kalam', cursive; font-size:20px; color:#fff; background: var(--margin-red); width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; transform: rotate(-4deg); }
+  .step-title{ font-weight:600; font-size:16px; flex:1; }
+  .badge{ font-family:'IBM Plex Mono', monospace; font-size:11px; background: var(--accent-soft); color:#7A5A16; padding:3px 8px; border-radius:20px; }
+  .badge.done{ background: #DCEEE2; color: var(--good); }
+
+  .capture-zone{ border: 2px dashed var(--paper-line); border-radius: 12px; padding: 22px; text-align:center; background: #F4EFE1; display:block; position:relative; }
+  .capture-zone.has-image{ border-style: solid; padding: 10px; }
+  .capture-zone img{ max-width:100%; border-radius:8px; display:block; margin:0 auto; box-shadow: 0 3px 10px var(--shadow); }
+  .tape{ position:absolute; top:-10px; left:50%; transform:translateX(-50%) rotate(-2deg); width:70px; height:22px; background: rgba(231,178,59,0.55); border: 1px solid rgba(231,178,59,0.7); }
+  .capture-icon{ font-size:34px; margin-bottom:8px; }
+  .capture-hint{ font-family:'IBM Plex Mono', monospace; font-size:12.5px; color: var(--ink-soft); }
+  input[type=file]{ display:none; }
+
+  .sample-box{ background:#F4EFE1; border-radius:10px; padding:14px 16px; margin-bottom:14px; font-family:'Kalam', cursive; font-size:18px; line-height:1.9; color: var(--ink); }
+  .sample-box div{ border-bottom: 1px dashed var(--paper-line); padding: 2px 0; }
+  .sample-box div:last-child{ border-bottom:none; }
+
+  .btn{ font-family:'IBM Plex Mono', monospace; font-weight:600; font-size:14px; border:none; border-radius: 9px; padding: 12px 18px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:8px; transition: transform .12s ease; }
+  .btn:active{ transform: translateY(1px); }
+  .btn-primary{ background: var(--ink); color: #fff; width:100%; margin-top:14px;}
+  .btn-primary:disabled{ background:#B7BEC9; cursor:not-allowed; }
+  .btn-outline{ background: transparent; border:1.5px solid var(--ink); color: var(--ink); }
+  .btn-accent{ background: var(--accent); color: var(--ink); width:100%; }
+  .btn-text{ background:none; border:none; color: var(--ink-soft); text-decoration:underline; font-size:12.5px; padding:6px; cursor:pointer; }
+
+  .status{ font-family:'IBM Plex Mono', monospace; font-size:13px; color: var(--ink-soft); margin-top:10px; text-align:center; min-height:16px; }
+  .status.error{ color: var(--danger); }
+
+  .todo-item{ display:flex; align-items:flex-start; gap:10px; padding: 10px 0; border-bottom: 1px solid var(--paper-line); }
+  .todo-item:last-child{ border-bottom:none; }
+  .todo-item input[type=checkbox]{ width:20px; height:20px; margin-top:2px; accent-color: var(--margin-red); flex-shrink:0; }
+  .todo-text{ flex:1; font-size:15.5px; line-height:1.4; border:none; background:transparent; font-family:'Noto Serif KR', serif; color: var(--ink); resize:none; overflow:hidden; padding:0; outline:none; }
+  .todo-time{ font-family:'IBM Plex Mono', monospace; font-size:12px; color: var(--ink-soft); border: 1px solid var(--paper-line); border-radius:6px; padding:3px 6px; width:74px; text-align:center; background:#fff; }
+  .remove-btn{ background:none; border:none; color: var(--ink-soft); cursor:pointer; font-size:16px; padding:2px 4px; }
+  .add-row{ text-align:center; margin-top:8px; }
+  .empty-hint{ text-align:center; color: var(--ink-soft); font-family:'IBM Plex Mono', monospace; font-size:13px; padding:20px 0; }
+  footer{ text-align:center; font-family:'IBM Plex Mono', monospace; font-size:11.5px; color: var(--ink-soft); padding: 10px 24px 30px; position:relative; z-index:1; }
+  .hidden{ display:none !important; }
+
+  .modal-back{ position:fixed; inset:0; background:rgba(36,48,74,0.45); display:flex; align-items:center; justify-content:center; z-index:10; padding:20px; }
+  .modal{ background:#FFFDF8; border-radius:14px; padding:24px; max-width:420px; width:100%; box-shadow: 0 12px 30px rgba(0,0,0,0.25); }
+  .modal h3{ margin-top:0; font-family:'Kalam', cursive; font-size:22px; }
+  .modal input{ width:100%; padding:10px 12px; border:1.5px solid var(--paper-line); border-radius:8px; font-family:'IBM Plex Mono', monospace; font-size:13px; margin:10px 0; }
+  .modal .note{ font-size:12.5px; color: var(--ink-soft); line-height:1.5; }
+</style>
+</head>
+<body>
+<div class="margin-line"></div>
+
+<div class="modal-back hidden" id="keyModal">
+  <div class="modal">
+    <h3>Gemini API 키 설정</h3>
+    <p class="note">사진 속 글자를 읽는 데 필요해요. 한 번만 입력하면 이 기기(브라우저)에 저장돼서 다음에는 다시 입력 안 해도 돼요.</p>
+    <input type="text" id="apiKeyInput" placeholder="여기에 API 키 붙여넣기">
+    <button class="btn btn-primary" id="saveKeyBtn">저장하고 시작하기</button>
+    <p class="note">⚠️ 이 방식은 이 링크의 소스코드를 볼 수 있는 사람이라면 이론적으로 키를 볼 수 있어요. 가족·지인 등 신뢰할 수 있는 사람들과만 공유해주세요.</p>
+  </div>
+</div>
+
+<header>
+  <div class="eyebrow"><span>Paper → Reminder</span><button class="gear-btn" id="settingsBtn">⚙️ 설정</button></div>
+  <h1>오늘의 할일, 사진 한 장으로</h1>
+  <p class="sub">종이 다이어리에 적은 할 일을 사진으로 찍으면, 글자를 읽어서 오늘 날짜 캘린더 알림으로 만들어드려요.</p>
+</header>
+
+<main>
+  <!-- Step 1: Handwriting calibration -->
+  <div class="card">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-title">내 글씨체 학습시키기</div>
+      <span class="badge" id="calBadge">선택</span>
+    </div>
+    <p class="sub" style="margin-top:0;">아래 문장을 종이에 그대로 옮겨 적고 사진 찍으면, 이후 이 사람 글씨를 더 잘 읽어요. (건너뛰어도 됩니다)</p>
+    <div class="sample-box">
+      <div>오늘 저녁 7시 헬스장 가기</div>
+      <div>우유와 계란 사기</div>
+      <div>엄마에게 전화하기</div>
+    </div>
+
+    <label id="calZone" class="capture-zone" for="calInput">
+      <div class="capture-icon">✍️</div>
+      <div class="capture-hint">위 문장 적은 종이 사진 찍기 / 앨범에서 선택</div>
+    </label>
+    <input type="file" id="calInput" accept="image/*">
+    <button class="btn btn-outline" id="clearCalBtn" style="width:100%; margin-top:10px;">학습 데이터 지우기</button>
+  </div>
+
+  <!-- Step 2: Capture today's list -->
+  <div class="card">
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-title">할일 목록 사진 찍기</div>
+    </div>
+    <label id="captureZone" class="capture-zone" for="photoInput">
+      <div class="capture-icon">📷</div>
+      <div class="capture-hint">눌러서 사진 찍기 / 앨범에서 선택</div>
+    </label>
+    <input type="file" id="photoInput" accept="image/*">
+    <button class="btn btn-primary" id="analyzeBtn" disabled>글자 읽어오기</button>
+    <div class="status" id="status"></div>
+  </div>
+
+  <!-- Step 3: Review list -->
+  <div class="card hidden" id="listCard">
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-title">읽어온 할일 확인하기</div>
+    </div>
+    <div id="todoList"></div>
+    <div class="add-row"><button class="btn btn-outline" id="addItemBtn">+ 할일 직접 추가</button></div>
+  </div>
+
+  <!-- Step 4: Export -->
+  <div class="card hidden" id="exportCard">
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-title">캘린더 알림으로 등록하기</div>
+    </div>
+    <p class="sub" style="margin-top:0;">체크된 할일이 오늘 날짜 캘린더 일정으로 만들어져요.</p>
+    <button class="btn btn-accent" id="exportBtn">📅 오늘 캘린더 알림에 추가</button>
+    <div class="status" id="exportStatus"></div>
+  </div>
+</main>
+
+<footer>사진은 서버에 저장되지 않고 글자 추출에만 사용돼요.</footer>
+
+<script>
+const LS_KEY_API = 'ptr_gemini_key';
+const LS_KEY_CAL_IMG = 'ptr_cal_image';
+const LS_KEY_CAL_TEXT = 'ptr_cal_text';
+const CAL_SAMPLE_TEXT = "오늘 저녁 7시 헬스장 가기\n우유와 계란 사기\n엄마에게 전화하기";
+
+let apiKey = localStorage.getItem(LS_KEY_API) || '';
+let uploadedBase64 = null, uploadedMediaType = "image/jpeg";
+let calBase64 = localStorage.getItem(LS_KEY_CAL_IMG) || null;
+let calMediaType = "image/jpeg";
+let todos = [];
+
+const keyModal = document.getElementById('keyModal');
+const apiKeyInput = document.getElementById('apiKeyInput');
+const saveKeyBtn = document.getElementById('saveKeyBtn');
+const settingsBtn = document.getElementById('settingsBtn');
+
+function openKeyModal(){ apiKeyInput.value = apiKey || ''; keyModal.classList.remove('hidden'); }
+function closeKeyModal(){ keyModal.classList.add('hidden'); }
+if(!apiKey) openKeyModal();
+settingsBtn.addEventListener('click', openKeyModal);
+saveKeyBtn.addEventListener('click', () => {
+  const v = apiKeyInput.value.trim();
+  if(!v){ return; }
+  apiKey = v;
+  localStorage.setItem(LS_KEY_API, v);
+  closeKeyModal();
+});
+
+// Calibration
+const calZone = document.getElementById('calZone');
+const calInput = document.getElementById('calInput');
+const calBadge = document.getElementById('calBadge');
+const clearCalBtn = document.getElementById('clearCalBtn');
+
+function refreshCalBadge(){
+  if(calBase64){ calBadge.textContent = '완료'; calBadge.classList.add('done'); }
+  else { calBadge.textContent = '선택'; calBadge.classList.remove('done'); }
+}
+refreshCalBadge();
+if(calBase64){
+  calZone.classList.add('has-image');
+  calZone.innerHTML = '<div class="tape"></div><img src="data:image/jpeg;base64,' + calBase64 + '" alt="학습용 손글씨 사진">';
+}
+
+calInput.addEventListener('change', () => {
+  const file = calInput.files[0];
+  if(!file) return;
+  calMediaType = file.type || 'image/jpeg';
+  const reader = new FileReader();
+  reader.onload = () => {
+    calBase64 = reader.result.split(',')[1];
+    localStorage.setItem(LS_KEY_CAL_IMG, calBase64);
+    localStorage.setItem(LS_KEY_CAL_TEXT, CAL_SAMPLE_TEXT);
+    calZone.classList.add('has-image');
+    calZone.innerHTML = '<div class="tape"></div><img src="' + reader.result + '" alt="학습용 손글씨 사진">';
+    refreshCalBadge();
+  };
+  reader.readAsDataURL(file);
+});
+
+clearCalBtn.addEventListener('click', () => {
+  calBase64 = null;
+  localStorage.removeItem(LS_KEY_CAL_IMG);
+  localStorage.removeItem(LS_KEY_CAL_TEXT);
+  calZone.classList.remove('has-image');
+  calZone.innerHTML = '<div class="capture-icon">✍️</div><div class="capture-hint">위 문장 적은 종이 사진 찍기 / 앨범에서 선택</div>';
+  refreshCalBadge();
+});
+
+// Photo capture
+const photoInput = document.getElementById('photoInput');
+const captureZone = document.getElementById('captureZone');
+const analyzeBtn = document.getElementById('analyzeBtn');
+const statusEl = document.getElementById('status');
+const listCard = document.getElementById('listCard');
+const todoListEl = document.getElementById('todoList');
+const exportCard = document.getElementById('exportCard');
+const exportBtn = document.getElementById('exportBtn');
+const exportStatus = document.getElementById('exportStatus');
+const addItemBtn = document.getElementById('addItemBtn');
+
+photoInput.addEventListener('change', () => {
+  const file = photoInput.files[0];
+  if(!file) return;
+  uploadedMediaType = file.type || "image/jpeg";
+  const reader = new FileReader();
+  reader.onload = () => {
+    uploadedBase64 = reader.result.split(',')[1];
+    captureZone.classList.add('has-image');
+    captureZone.innerHTML = '<div class="tape"></div><img src="' + reader.result + '" alt="업로드한 사진">';
+    analyzeBtn.disabled = false;
+    statusEl.textContent = '';
+    statusEl.classList.remove('error');
+  };
+  reader.readAsDataURL(file);
+});
+
+analyzeBtn.addEventListener('click', async () => {
+  if(!uploadedBase64) return;
+  if(!apiKey){ openKeyModal(); return; }
+  analyzeBtn.disabled = true;
+  statusEl.classList.remove('error');
+  statusEl.textContent = '글자를 읽고 있어요...';
+
+  const parts = [];
+  const calText = localStorage.getItem(LS_KEY_CAL_TEXT);
+  if(calBase64 && calText){
+    parts.push({ text: "다음은 이 사용자의 손글씨 참고 샘플입니다. 아래 이미지에는 정확히 이 문장들이 손으로 적혀 있습니다:\n" + calText + "\n이 손글씨체의 특징(자음/모음 모양, 필압, 흘림 정도)을 참고해서, 잠시 후 보여줄 새로운 사진 속 같은 사람의 글씨를 더 정확히 읽어주세요." });
+    parts.push({ inline_data: { mime_type: calMediaType, data: calBase64 } });
+  }
+  parts.push({ text: "아래는 오늘 새로 찍은 할일(투두) 목록 손글씨 사진입니다. 당신은 한글 손글씨 판독 전문가입니다.\n\n다음 순서로 작업하세요:\n1. 한 글자, 한 획씩 꼼꼼히 살펴보고, 여러 줄이 있으면 줄 순서대로 읽으세요.\n2. 뭉개지거나 흘려 쓴 글자는 문맥으로 가장 자연스러운 한국어 단어로 추론하세요.\n3. 시간 표현(예: 3시, 15:00, 오후 2시)이 있으면 별도로 분리하세요.\n4. 체크박스, 동그라미, 줄긋기는 무시하고 텍스트만 추출하세요.\n\n다른 설명 없이 순수 JSON 배열만 출력하세요.\n형식: [{\"text\": \"할일 내용(자연스러운 한국어로 교정됨)\", \"time\": \"HH:MM 또는 null\"}]\n글자를 전혀 알아볼 수 없으면 빈 배열 []을 반환하세요." });
+  parts.push({ inline_data: { mime_type: uploadedMediaType, data: uploadedBase64 } });
+
+  try{
+    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + encodeURIComponent(apiKey), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contents: [{ parts }] })
+    });
+    const data = await response.json();
+    if(data.error){ throw new Error(data.error.message || 'API 오류'); }
+    const textOut = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts || [])
+      .map(p => p.text || '').join('');
+    let clean = textOut.trim().replace(/^```json/i,'').replace(/^```/,'').replace(/```$/,'').trim();
+    const parsed = JSON.parse(clean);
+    if(!Array.isArray(parsed) || parsed.length === 0){
+      statusEl.textContent = '글자를 알아보지 못했어요. 더 밝고 선명한 사진으로 다시 시도해보세요.';
+      statusEl.classList.add('error');
+      analyzeBtn.disabled = false;
+      return;
+    }
+    todos = parsed.map(item => ({ text: (item.text||'').trim(), time: item.time || null, checked:true }));
+    renderTodos();
+    statusEl.textContent = '완료! ' + todos.length + '개의 할일을 찾았어요.';
+    listCard.classList.remove('hidden');
+    exportCard.classList.remove('hidden');
+    analyzeBtn.disabled = false;
+  }catch(err){
+    console.error(err);
+    statusEl.textContent = '읽는 중 문제가 생겼어요: ' + err.message;
+    statusEl.classList.add('error');
+    analyzeBtn.disabled = false;
+  }
+});
+
+function renderTodos(){
+  if(todos.length === 0){
+    todoListEl.innerHTML = '<div class="empty-hint">할일이 없어요. 아래에서 직접 추가해보세요.</div>';
+    return;
+  }
+  todoListEl.innerHTML = '';
+  todos.forEach((todo, idx) => {
+    const row = document.createElement('div');
+    row.className = 'todo-item';
+    row.innerHTML = `
+      <input type="checkbox" ${todo.checked ? 'checked' : ''} data-idx="${idx}" class="chk">
+      <textarea class="todo-text" rows="1" data-idx="${idx}">${escapeHtml(todo.text)}</textarea>
+      <input type="text" class="todo-time" placeholder="시간" value="${todo.time || ''}" data-idx="${idx}">
+      <button class="remove-btn" data-idx="${idx}" title="삭제">✕</button>
+    `;
+    todoListEl.appendChild(row);
+  });
+  todoListEl.querySelectorAll('.chk').forEach(el => el.addEventListener('change', e => { todos[+e.target.dataset.idx].checked = e.target.checked; }));
+  todoListEl.querySelectorAll('.todo-text').forEach(el => el.addEventListener('input', e => { todos[+e.target.dataset.idx].text = e.target.value; }));
+  todoListEl.querySelectorAll('.todo-time').forEach(el => el.addEventListener('input', e => { todos[+e.target.dataset.idx].time = e.target.value.trim() || null; }));
+  todoListEl.querySelectorAll('.remove-btn').forEach(el => el.addEventListener('click', e => { todos.splice(+e.target.dataset.idx, 1); renderTodos(); }));
+}
+
+function escapeHtml(str){ const div = document.createElement('div'); div.textContent = str; return div.innerHTML; }
+
+addItemBtn.addEventListener('click', () => {
+  todos.push({ text: '', time: null, checked: true });
+  listCard.classList.remove('hidden'); exportCard.classList.remove('hidden');
+  renderTodos();
+});
+
+function pad(n){ return n < 10 ? '0'+n : ''+n; }
+
+function buildICS(items){
+  const now = new Date();
+  const y = now.getFullYear(), m = now.getMonth(), d = now.getDate();
+  const stamp = now.getFullYear()+pad(now.getMonth()+1)+pad(now.getDate())+'T'+pad(now.getHours())+pad(now.getMinutes())+'00Z';
+  let events = '';
+  items.forEach((item, i) => {
+    let hh = 9, mm = 0;
+    if(item.time && /^\d{1,2}:\d{2}$/.test(item.time)){
+      const parts = item.time.split(':'); hh = parseInt(parts[0],10); mm = parseInt(parts[1],10);
+    }
+    const start = new Date(y, m, d, hh, mm, 0);
+    const end = new Date(start.getTime() + 30*60000);
+    const dtStart = start.getFullYear()+pad(start.getMonth()+1)+pad(start.getDate())+'T'+pad(start.getHours())+pad(start.getMinutes())+'00';
+    const dtEnd = end.getFullYear()+pad(end.getMonth()+1)+pad(end.getDate())+'T'+pad(end.getHours())+pad(end.getMinutes())+'00';
+    const title = (item.text || '할일').replace(/[\r\n]/g,' ');
+    events += ['BEGIN:VEVENT','UID:todo-'+Date.now()+'-'+i+'@paper-reminder','DTSTAMP:'+stamp,'DTSTART:'+dtStart,'DTEND:'+dtEnd,'SUMMARY:'+title,'BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:'+title,'TRIGGER:-PT0M','END:VALARM','END:VEVENT'].join('\r\n') + '\r\n';
+  });
+  return ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//paper-reminder//KR','CALSCALE:GREGORIAN', events.trim(), 'END:VCALENDAR'].join('\r\n');
+}
+
+exportBtn.addEventListener('click', () => {
+  const checked = todos.filter(t => t.checked && t.text.trim().length > 0);
+  if(checked.length === 0){
+    exportStatus.textContent = '체크된 할일이 없어요. 목록을 확인해주세요.';
+    exportStatus.classList.add('error');
+    return;
+  }
+  const ics = buildICS(checked);
+  const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = '오늘의할일.ics';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 3000);
+  exportStatus.classList.remove('error');
+  exportStatus.textContent = checked.length + '개 알림 파일을 만들었어요. 열어서 캘린더에 추가해주세요.';
+});
+</script>
+</body>
+</html>
