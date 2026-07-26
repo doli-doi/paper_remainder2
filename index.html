@@ -71,7 +71,9 @@
   .todo-item{ display:flex; align-items:flex-start; gap:10px; padding: 10px 0; border-bottom: 1px solid var(--paper-line); }
   .todo-item:last-child{ border-bottom:none; }
   .todo-item input[type=checkbox]{ width:20px; height:20px; margin-top:2px; accent-color: var(--margin-red); flex-shrink:0; }
-  .todo-text{ flex:1; font-size:15.5px; line-height:1.4; border:none; background:transparent; font-family:'Noto Serif KR', serif; color: var(--ink); resize:none; overflow:hidden; padding:0; outline:none; }
+  .todo-text{ flex:1; font-size:15.5px; line-height:1.4; border:1.5px dashed var(--paper-line); border-radius:6px; background:#FFFDF8; font-family:'Noto Serif KR', serif; color: var(--ink); resize:none; overflow:hidden; padding:4px 6px; outline:none; }
+  .todo-text:focus{ border-color: var(--accent); border-style: solid; }
+  .edit-hint{ font-family:'IBM Plex Mono', monospace; font-size:12px; color: var(--ink-soft); margin: 0 0 10px; }
   .todo-time{ font-family:'IBM Plex Mono', monospace; font-size:12px; color: var(--ink-soft); border: 1px solid var(--paper-line); border-radius:6px; padding:3px 6px; width:74px; text-align:center; background:#fff; }
   .remove-btn{ background:none; border:none; color: var(--ink-soft); cursor:pointer; font-size:16px; padding:2px 4px; }
   .add-row{ text-align:center; margin-top:8px; }
@@ -149,6 +151,7 @@
       <div class="step-num">3</div>
       <div class="step-title">읽어온 할일 확인하기</div>
     </div>
+    <p class="edit-hint">✏️ 잘못 읽힌 글자가 있으면 점선 박스를 눌러서 직접 고쳐주세요.</p>
     <div id="todoList"></div>
     <div class="add-row"><button class="btn btn-outline" id="addItemBtn">+ 할일 직접 추가</button></div>
   </div>
@@ -366,6 +369,10 @@ function buildICS(items){
   return ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//paper-reminder//KR','CALSCALE:GREGORIAN', events.trim(), 'END:VCALENDAR'].join('\r\n');
 }
 
+function isIOS(){
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+}
+
 exportBtn.addEventListener('click', () => {
   const checked = todos.filter(t => t.checked && t.text.trim().length > 0);
   if(checked.length === 0){
@@ -374,14 +381,24 @@ exportBtn.addEventListener('click', () => {
     return;
   }
   const ics = buildICS(checked);
-  const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = '오늘의할일.ics';
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 3000);
-  exportStatus.classList.remove('error');
-  exportStatus.textContent = checked.length + '개 알림 파일을 만들었어요. 열어서 캘린더에 추가해주세요.';
+
+  if(isIOS()){
+    // iOS Safari: navigating directly to a data URI opens the native
+    // "이벤트 추가" (Add to Calendar) preview instead of just downloading a file.
+    const dataUrl = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(ics);
+    window.location.href = dataUrl;
+    exportStatus.classList.remove('error');
+    exportStatus.textContent = '캘린더 추가 화면이 곧 열려요. 안 열리면 잠시 후 다시 눌러주세요.';
+  } else {
+    const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = '오늘의할일.ics';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 3000);
+    exportStatus.classList.remove('error');
+    exportStatus.textContent = checked.length + '개 알림 파일을 다운로드했어요. 알림창에서 파일을 열어 캘린더에 추가해주세요.';
+  }
 });
 </script>
 </body>
