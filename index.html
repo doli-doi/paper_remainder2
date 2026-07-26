@@ -381,17 +381,17 @@ exportBtn.addEventListener('click', () => {
     return;
   }
   const ics = buildICS(checked);
+  const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
 
   if(isIOS()){
-    // iOS Safari: navigating directly to a data URI opens the native
-    // "이벤트 추가" (Add to Calendar) preview instead of just downloading a file.
-    const dataUrl = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(ics);
-    window.location.href = dataUrl;
+    // iOS Safari: navigating to a blob URL (no download attribute) lets Safari
+    // open its native calendar-event preview instead of just downloading a file.
+    window.location.href = url;
     exportStatus.classList.remove('error');
     exportStatus.textContent = '캘린더 추가 화면이 곧 열려요. 안 열리면 잠시 후 다시 눌러주세요.';
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
   } else {
-    const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url; a.download = '오늘의할일.ics';
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
