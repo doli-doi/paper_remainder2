@@ -383,17 +383,8 @@ reminderBtn.addEventListener('click', () => {
     exportStatus.classList.add('error');
     return;
   }
- const now = new Date();
-const dateStr = now.getFullYear() + '-' + pad(now.getMonth()+1) + '-' + pad(now.getDate());
-
-const lines = checked.map(t => {
-  const time = (t.time && /^\d{1,2}:\d{2}$/.test(t.time))
-    ? t.time
-    : '09:00';
-
-  // 단축어 날짜 변환이 잘 되도록 T 제거
-  return dateStr + ' ' + time + '@@' + t.text;
-}).join('\n');
+  // 날짜는 단축어에서 직접 선택하므로, 여기서는 할일 텍스트만 줄바꿈으로 전달
+  const lines = checked.map(t => t.text).join('\n');
   const url = 'shortcuts://x-callback-url/run-shortcut?name=' + encodeURIComponent('종이할일추가') + '&input=text&text=' + encodeURIComponent(lines);
   window.location.href = url;
   exportStatus.classList.remove('error');
